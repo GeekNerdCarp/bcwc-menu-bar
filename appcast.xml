@@ -6,6 +6,15 @@
     <description>Updates for the BCWC Menu Bar app.</description>
     <language>en</language>
     <item>
+      <title>Version 1.5</title>
+      <pubDate>Thu, 12 Nov 2026 16:22:09 -0500</pubDate>
+      <sparkle:version>6</sparkle:version>
+      <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <sparkle:releaseNotesLink>https://github.com/GeekNerdCarp/bcwc-menu-bar/releases/tag/v1.5</sparkle:releaseNotesLink>
+      <enclosure url="https://github.com/GeekNerdCarp/bcwc-menu-bar/releases/download/v1.5/BCWC-Menu-Bar.dmg" sparkle:edSignature="z3R4n/y5h38C4u7D9ZDY0di1dEz2DqgqDfiHER7/PPpFi4ShyBx+mPMRTyKc5KiyuzDvnzMTnl9F0OT3Eu50Dg==" length="2650407" type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.4</title>
       <pubDate>Thu, 12 Nov 2026 15:55:51 -0500</pubDate>
       <sparkle:version>5</sparkle:version>
