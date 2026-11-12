@@ -16,6 +16,7 @@ struct MenuBarLabel: View {
 struct PanelView: View {
     @ObservedObject var store: WeatherStore
     @StateObject private var radar = RadarLoader()
+    @ObservedObject private var updates = UpdateChecker.shared
     @State private var tab: PanelTab
 
     init(store: WeatherStore, tab: PanelTab = .now) {
@@ -32,6 +33,7 @@ struct PanelView: View {
                 .frame(height: 430)
             Divider().opacity(0.4)
             footer
+            versionRow
         }
         .frame(width: 380)
         .background(.regularMaterial)
@@ -255,6 +257,24 @@ struct PanelView: View {
         }
         .foregroundStyle(.secondary)
         .glassCard(padding: 10)
+    }
+
+    // MARK: Version
+
+    // Bottom line: the installed version, plus a link when GitHub has a newer release.
+    private var versionRow: some View {
+        HStack(spacing: 6) {
+            Text("BCWC Menu Bar \(UpdateChecker.currentVersion)")
+            if updates.updateAvailable, let latest = updates.latestVersion, let url = updates.releaseURL {
+                Text("·")
+                Link("Update to \(latest)", destination: url)
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.system(size: 10, design: .rounded))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
     }
 
     // MARK: Footer

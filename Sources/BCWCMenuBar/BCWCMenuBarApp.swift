@@ -8,6 +8,7 @@ struct BCWCMenuBarApp: App {
         if CommandLine.arguments.contains("--check") {
             Task { await SelfCheck.run() }
         }
+        Task { @MainActor in UpdateChecker.shared.start() }
     }
 
     var body: some Scene {
