@@ -8,7 +8,7 @@ struct BCWCMenuBarApp: App {
         if CommandLine.arguments.contains("--check") {
             Task { await SelfCheck.run() }
         }
-        Task { @MainActor in UpdateChecker.shared.start() }
+        _ = AppUpdater.shared  // starts Sparkle's scheduled update checks
     }
 
     var body: some Scene {

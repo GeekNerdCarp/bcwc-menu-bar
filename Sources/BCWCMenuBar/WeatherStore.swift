@@ -6,6 +6,7 @@ final class WeatherStore: ObservableObject {
     @Published private(set) var snapshot: Snapshot?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
+    @Published private(set) var townID: String = Towns.validID(UserDefaults.standard.string(forKey: "selectedTown"))
 
     private var loop: Task<Void, Never>?
     private var alertLoop: Task<Void, Never>?
@@ -28,6 +29,15 @@ final class WeatherStore: ObservableObject {
         }
     }
 
+    // Switching towns keeps the choice across launches and refreshes straight away.
+    func selectTown(_ id: String) {
+        guard Towns.all.contains(where: { $0.id == id }), id != townID else { return }
+        townID = id
+        UserDefaults.standard.set(id, forKey: "selectedTown")
+        snapshot = nil
+        Task { await refresh() }
+    }
+
     func refreshAlerts() async {
         guard let alerts = try? await BCWCClient.alerts() else { return }
         AlertNotifier.shared.process(alerts)
@@ -42,7 +52,7 @@ final class WeatherStore: ObservableObject {
         isRefreshing = true
         defer { isRefreshing = false }
         do {
-            let latest = try await BCWCClient.snapshot()
+            let latest = try await BCWCClient.snapshot(town: townID)
             snapshot = latest
             AlertNotifier.shared.process(latest.alerts)
             errorMessage = nil

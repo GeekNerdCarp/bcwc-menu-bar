@@ -16,8 +16,9 @@ struct MenuBarLabel: View {
 struct PanelView: View {
     @ObservedObject var store: WeatherStore
     @StateObject private var radar = RadarLoader()
-    @ObservedObject private var updates = UpdateChecker.shared
+    @ObservedObject private var updater = AppUpdater.shared
     @State private var tab: PanelTab
+    @State private var openAtLogin = LoginItem.isEnabled
 
     init(store: WeatherStore, tab: PanelTab = .now) {
         self.store = store
@@ -63,10 +64,18 @@ struct PanelView: View {
             LinearGradient(colors: [.black.opacity(0.2), .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
             HStack(alignment: .bottom, spacing: 10) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text((w?.townName ?? "Ripley").uppercased())
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .tracking(1.2)
-                        .foregroundStyle(.white.opacity(0.85))
+                    Menu {
+                        ForEach(Towns.all) { town in
+                            Button(town.name) { store.selectTown(town.id) }
+                        }
+                    } label: {
+                        Text(((w?.townName ?? Towns.name(for: store.townID))).uppercased() + "  ⌄")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .tracking(1.2)
+                            .foregroundStyle(.white.opacity(0.85))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
                     Text(store.temperatureText)
                         .font(.system(size: 60, weight: .ultraLight, design: .rounded))
                         .monospacedDigit()
@@ -261,15 +270,17 @@ struct PanelView: View {
 
     // MARK: Version
 
-    // Bottom line: the installed version, plus a link when GitHub has a newer release.
+    // Bottom line: the installed version, login-item toggle, and the update check.
     private var versionRow: some View {
-        HStack(spacing: 6) {
-            Text("BCWC Menu Bar \(UpdateChecker.currentVersion)")
-            if updates.updateAvailable, let latest = updates.latestVersion, let url = updates.releaseURL {
-                Text("·")
-                Link("Update to \(latest)", destination: url)
-            }
+        HStack(spacing: 8) {
+            Text("BCWC Menu Bar \(AppUpdater.currentVersion)")
+            Text("·")
+            Toggle("Open at login", isOn: $openAtLogin)
+                .toggleStyle(.checkbox)
+                .onChange(of: openAtLogin) { on in LoginItem.set(on) }
             Spacer(minLength: 0)
+            Button("Check for Updates…") { updater.checkForUpdates() }
+                .buttonStyle(.borderless)
         }
         .font(.system(size: 10, design: .rounded))
         .foregroundStyle(.secondary)

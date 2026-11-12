@@ -6,7 +6,7 @@ import Foundation
 enum SelfCheck {
     static func run() async -> Never {
         do {
-            let s = try await BCWCClient.snapshot()
+            let s = try await BCWCClient.snapshot(town: Towns.defaultID)
             let w = s.weather
             print("town: \(w.townName ?? "?") · \(Presentation.degrees(w.temperatureF)) · \(Presentation.label(w.weatherCode)) · icon \(Presentation.symbol(code: w.weatherCode, isDay: w.story?.hourly?.first?.isDay))")
             print("feels \(Presentation.degrees(w.apparentTemperatureF)) · H \(Presentation.degrees(w.temperatureMaxF)) L \(Presentation.degrees(w.temperatureMinF)) · humidity \(Presentation.number(w.relativeHumidityPct, "%"))")
