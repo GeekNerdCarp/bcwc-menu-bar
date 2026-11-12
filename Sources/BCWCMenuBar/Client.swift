@@ -15,6 +15,11 @@ enum BCWCClient {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
+    // The frequent alert poll: a single small request, so new alerts show up quickly.
+    static func alerts() async throws -> [AlertItem] {
+        try await fetch(AlertsResponse.self, "/api/alerts").alerts ?? []
+    }
+
     // The timed refresh: one request per endpoint, all in parallel.
     static func snapshot() async throws -> Snapshot {
         async let weather = fetch(TownWeather.self, "/api/weather?town=\(town)&include=story")
