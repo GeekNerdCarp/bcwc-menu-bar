@@ -8,6 +8,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/BCWCMenuBar "$APP/Contents/MacOS/BCWCMenuBar"
 cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp -R Resources/scenes "$APP/Contents/Resources/scenes"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

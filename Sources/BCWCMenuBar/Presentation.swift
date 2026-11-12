@@ -104,3 +104,22 @@ enum Presentation {
         return "\(minutes / 60) hr \(minutes % 60) min"
     }
 }
+
+extension Presentation {
+    static func trendSymbol(_ trend: String?) -> String {
+        switch trend?.lowercased() {
+        case "rising": return "arrow.up.right"
+        case "falling": return "arrow.down.right"
+        default: return "arrow.right"
+        }
+    }
+
+    static func gaugeStage(_ value: Double?) -> String {
+        guard let value else { return "--" }
+        return String(format: "%.2f ft", value)
+    }
+
+    static func tone(_ name: String?) -> String {
+        name?.lowercased() ?? "normal"
+    }
+}

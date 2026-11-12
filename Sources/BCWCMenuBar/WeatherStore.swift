@@ -32,6 +32,11 @@ final class WeatherStore: ObservableObject {
         }
     }
 
+    // For previews and checks: show a snapshot without any network calls.
+    func preview(_ value: Snapshot) {
+        snapshot = value
+    }
+
     var isDay: Bool? { snapshot?.weather.story?.hourly?.first?.isDay }
     var temperatureText: String { Presentation.degrees(snapshot?.weather.temperatureF) }
     var symbol: String { Presentation.symbol(code: snapshot?.weather.weatherCode, isDay: isDay) }

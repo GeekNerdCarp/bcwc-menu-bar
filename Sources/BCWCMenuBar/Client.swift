@@ -15,16 +15,21 @@ enum BCWCClient {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
+    // The timed refresh: one request per endpoint, all in parallel.
     static func snapshot() async throws -> Snapshot {
         async let weather = fetch(TownWeather.self, "/api/weather?town=\(town)&include=story")
         async let forecast = fetch(ForecastResponse.self, "/api/nws-periods?town=\(town)")
         async let alerts = fetch(AlertsResponse.self, "/api/alerts")
         async let radar = try? fetch(RadarStatus.self, "/api/radar-frames")
+        async let stations = try? fetch(SurfaceResponse.self, "/api/surface-observations")
+        async let rivers = try? fetch(RiverResponse.self, "/api/river-conditions")
         return Snapshot(
             weather: try await weather,
             forecast: (try await forecast).periods ?? [],
             alerts: (try await alerts).alerts ?? [],
             radar: await radar,
+            stations: (await stations)?.cards ?? [],
+            rivers: (await rivers)?.gauges ?? [],
             fetchedAt: Date()
         )
     }
