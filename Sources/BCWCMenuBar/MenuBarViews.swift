@@ -19,6 +19,9 @@ struct PanelView: View {
     @ObservedObject private var updater = AppUpdater.shared
     @State private var tab: PanelTab
     @State private var openAtLogin = LoginItem.isEnabled
+    // The height of the tab area. Saved across launches; the grip at the bottom changes it.
+    @AppStorage("panelContentHeight") private var contentHeight: Double = 430
+    @State private var dragStartHeight: Double?
 
     init(store: WeatherStore, tab: PanelTab = .now) {
         self.store = store
@@ -31,10 +34,11 @@ struct PanelView: View {
             tabBar
             Divider().opacity(0.4)
             content
-                .frame(height: 430)
+                .frame(height: CGFloat(contentHeight))
             Divider().opacity(0.4)
             footer
             versionRow
+            resizeGrip
         }
         .frame(width: 380)
         .background(.regularMaterial)
@@ -266,6 +270,28 @@ struct PanelView: View {
         }
         .foregroundStyle(.secondary)
         .glassCard(padding: 10)
+    }
+
+    // MARK: Resize
+
+    // Drag the grip to make the tab area taller or shorter. Clamped so the panel stays usable.
+    private var resizeGrip: some View {
+        Capsule()
+            .fill(.secondary.opacity(0.5))
+            .frame(width: 44, height: 5)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+            .help("Drag to resize")
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        let start = dragStartHeight ?? contentHeight
+                        dragStartHeight = start
+                        contentHeight = min(max(start + Double(value.translation.height), 300), 800)
+                    }
+                    .onEnded { _ in dragStartHeight = nil }
+            )
     }
 
     // MARK: Version
