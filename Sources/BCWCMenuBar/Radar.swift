@@ -49,7 +49,7 @@ enum Basemap {
                 tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1)
             }
             // Darken the light street map so the radar colours stand out, as on the site.
-            NSColor(red: 0.03, green: 0.05, blue: 0.09, alpha: 0.72).setFill()
+            NSColor(red: 0.03, green: 0.05, blue: 0.09, alpha: 0.42).setFill()
             rect.fill()
             return true
         }
