@@ -1,8 +1,45 @@
 import AppKit
 import Foundation
+import MapKit
 
 // Builds a small radar loop centred on Brown County from the RainViewer tiles the site uses.
 // The loader only runs when the Radar tab is open, caches for five minutes, and stops when hidden.
+
+// Muted Apple Maps snapshot covering the same area as the radar crop, so the radar sits on real geography.
+enum Basemap {
+    static func region() -> MKCoordinateRegion {
+        let n = pow(2.0, Double(RadarRenderer.zoom)) * 256
+        let (cx, cy) = RadarRenderer.worldPixel(lat: RadarRenderer.centerLat, lon: RadarRenderer.centerLon, zoom: RadarRenderer.zoom)
+        let half = RadarRenderer.crop / 2
+        func lonOf(_ x: Double) -> Double { x / n * 360 - 180 }
+        func latOf(_ y: Double) -> Double { atan(sinh(.pi * (1 - 2 * y / n))) * 180 / .pi }
+        let west = lonOf(cx - half), east = lonOf(cx + half)
+        let north = latOf(cy - half), south = latOf(cy + half)
+        return MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: (north + south) / 2, longitude: (west + east) / 2),
+            span: MKCoordinateSpan(latitudeDelta: north - south, longitudeDelta: east - west)
+        )
+    }
+
+    static func snapshot() async throws -> NSImage {
+        let options = MKMapSnapshotter.Options()
+        options.region = region()
+        options.size = NSSize(width: RadarRenderer.size, height: RadarRenderer.size)
+        options.mapType = .mutedStandard
+        options.pointOfInterestFilter = .excludingAll
+        options.appearance = NSAppearance(named: .darkAqua)
+        let snapshotter = MKMapSnapshotter(options: options)
+        return try await withCheckedThrowingContinuation { continuation in
+            snapshotter.start { snapshot, error in
+                if let snapshot {
+                    continuation.resume(returning: snapshot.image)
+                } else {
+                    continuation.resume(throwing: error ?? URLError(.unknown))
+                }
+            }
+        }
+    }
+}
 
 enum RadarRenderer {
     // RainViewer serves tiles up to zoom 7. The crop is taken at that zoom and scaled up to fill the panel.
@@ -26,7 +63,7 @@ enum RadarRenderer {
         URL(string: "\(host)\(path)/256/\(zoom)/\(x)/\(y)/2/1_1.png")
     }
 
-    static func composite(host: String, path: String) async throws -> NSImage {
+    static func composite(host: String, path: String, basemap: NSImage?) async throws -> NSImage {
         let (cx, cy) = worldPixel(lat: centerLat, lon: centerLon, zoom: zoom)
         let origin = (x: cx - crop / 2, y: cy - crop / 2)
         let minTx = Int(floor(origin.x / 256)), maxTx = Int(floor((origin.x + crop - 1) / 256))
@@ -62,6 +99,7 @@ enum RadarRenderer {
         return NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
             NSColor(red: 0.02, green: 0.07, blue: 0.12, alpha: 1).setFill()
             rect.fill()
+            basemap?.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
             for tile in tiles {
                 let dest = NSRect(x: (Double(tile.x) * 256 - origin.x) * Double(scale), y: (Double(tile.y) * 256 - origin.y) * Double(scale), width: 256 * Double(scale), height: 256 * Double(scale))
                 tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1)
@@ -98,6 +136,7 @@ final class RadarLoader: ObservableObject {
     @Published private(set) var errorText: String?
 
     private var loadedAt: Date?
+    private var basemap: NSImage?
     private var playTask: Task<Void, Never>?
     private let maxAge: TimeInterval = 300
     private let frameCount = 6
@@ -117,10 +156,11 @@ final class RadarLoader: ObservableObject {
                 errorText = "Radar frames are unavailable right now."
                 return
             }
+            if basemap == nil { basemap = try? await Basemap.snapshot() }
             var images: [NSImage] = []
             var times: [Date] = []
             for frame in past.suffix(frameCount) {
-                images.append(try await RadarRenderer.composite(host: host, path: frame.path))
+                images.append(try await RadarRenderer.composite(host: host, path: frame.path, basemap: basemap))
                 times.append(Date(timeIntervalSince1970: frame.time))
             }
             frames = images

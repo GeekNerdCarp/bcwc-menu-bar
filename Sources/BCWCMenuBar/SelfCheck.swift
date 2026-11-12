@@ -21,7 +21,8 @@ enum SelfCheck {
             if let i = CommandLine.arguments.firstIndex(of: "--radar-png"), i + 1 < CommandLine.arguments.count {
                 let meta = try await BCWCClient.fetch(RadarFramesResponse.self, "/api/radar-frames")
                 if let host = meta.radar?.host, let last = meta.radar?.past?.last {
-                    let image = try await RadarRenderer.composite(host: host, path: last.path)
+                    let base = try? await Basemap.snapshot()
+                    let image = try await RadarRenderer.composite(host: host, path: last.path, basemap: base)
                     if let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
                         try png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
                         print("radar png written")
