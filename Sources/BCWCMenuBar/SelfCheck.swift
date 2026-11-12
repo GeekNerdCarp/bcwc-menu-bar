@@ -22,6 +22,22 @@ enum SelfCheck {
                 let meta = try await BCWCClient.fetch(RadarFramesResponse.self, "/api/radar-frames")
                 if let host = meta.radar?.host, let last = meta.radar?.past?.last {
                     let base = try? await Basemap.snapshot()
+                    if let base, let url = URL(string: "file://" + CommandLine.arguments[i + 1].replacingOccurrences(of: ".png", with: "-base.png")) {
+                        let scale = RadarRenderer.scale
+                        let (cx, cy) = RadarRenderer.worldPixel(lat: RadarRenderer.centerLat, lon: RadarRenderer.centerLon, zoom: Basemap.mapZoom)
+                        let span = RadarRenderer.crop * pow(2.0, Double(Basemap.mapZoom - RadarRenderer.zoom))
+                        let (mx, my) = RadarRenderer.worldPixel(lat: 39.0278, lon: -83.9191, zoom: Basemap.mapZoom)
+                        let px = (mx - (cx - span / 2)) * Double(scale), py = (my - (cy - span / 2)) * Double(scale)
+                        let marked = NSImage(size: base.size, flipped: true) { rect in
+                            base.draw(in: rect)
+                            NSColor.red.setFill()
+                            NSBezierPath(ovalIn: NSRect(x: px - 4, y: py - 4, width: 8, height: 8)).fill()
+                            return true
+                        }
+                        if let tiff = marked.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
+                            try? png.write(to: url)
+                        }
+                    }
                     let image = try await RadarRenderer.composite(host: host, path: last.path, basemap: base)
                     if let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff), let png = rep.representation(using: .png, properties: [:]) {
                         try png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

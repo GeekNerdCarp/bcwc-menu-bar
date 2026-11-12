@@ -46,7 +46,7 @@ enum Basemap {
                     x: (Double(tile.x) * 256 - ox) * scale,
                     y: (Double(tile.y) * 256 - oy) * scale,
                     width: 256 * scale, height: 256 * scale)
-                tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1)
+                tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
             }
             // Darken the light street map so the radar colours stand out, as on the site.
             NSColor(red: 0.03, green: 0.05, blue: 0.09, alpha: 0.42).setFill()
@@ -114,10 +114,10 @@ enum RadarRenderer {
         return NSImage(size: NSSize(width: size, height: size), flipped: true) { rect in
             NSColor(red: 0.02, green: 0.07, blue: 0.12, alpha: 1).setFill()
             rect.fill()
-            basemap?.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+            basemap?.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
             for tile in tiles {
                 let dest = NSRect(x: (Double(tile.x) * 256 - origin.x) * Double(scale), y: (Double(tile.y) * 256 - origin.y) * Double(scale), width: 256 * Double(scale), height: 256 * Double(scale))
-                tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1)
+                tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
             }
             if let first = outline.first {
                 let path = NSBezierPath()
