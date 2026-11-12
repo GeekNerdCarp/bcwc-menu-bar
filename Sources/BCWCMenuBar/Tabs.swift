@@ -38,7 +38,7 @@ struct RadarTab: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(frameLabel)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    Text("Radar © RainViewer · last 1 hour")
+                    Text("Radar © RainViewer · \(Basemap.attribution)")
                         .font(.system(size: 10, design: .rounded)).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)

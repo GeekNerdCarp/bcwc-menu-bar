@@ -1,42 +1,57 @@
 import AppKit
 import Foundation
-import MapKit
 
 // Builds a small radar loop centred on Brown County from the RainViewer tiles the site uses.
 // The loader only runs when the Radar tab is open, caches for five minutes, and stops when hidden.
 
-// Muted Apple Maps snapshot covering the same area as the radar crop, so the radar sits on real geography.
+// Street map under the radar: OpenStreetMap tiles, darkened to match the site. Fetched once per launch
+// at zoom 9 over the same area as the radar crop, then scaled to the panel.
 enum Basemap {
-    static func region() -> MKCoordinateRegion {
-        let n = pow(2.0, Double(RadarRenderer.zoom)) * 256
-        let (cx, cy) = RadarRenderer.worldPixel(lat: RadarRenderer.centerLat, lon: RadarRenderer.centerLon, zoom: RadarRenderer.zoom)
-        let half = RadarRenderer.crop / 2
-        func lonOf(_ x: Double) -> Double { x / n * 360 - 180 }
-        func latOf(_ y: Double) -> Double { atan(sinh(.pi * (1 - 2 * y / n))) * 180 / .pi }
-        let west = lonOf(cx - half), east = lonOf(cx + half)
-        let north = latOf(cy - half), south = latOf(cy + half)
-        return MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: (north + south) / 2, longitude: (west + east) / 2),
-            span: MKCoordinateSpan(latitudeDelta: north - south, longitudeDelta: east - west)
-        )
-    }
+    static let mapZoom = 9
+    static let attribution = "Map © OpenStreetMap contributors"
 
     static func snapshot() async throws -> NSImage {
-        let options = MKMapSnapshotter.Options()
-        options.region = region()
-        options.size = NSSize(width: RadarRenderer.size, height: RadarRenderer.size)
-        options.mapType = .mutedStandard
-        options.pointOfInterestFilter = .excludingAll
-        options.appearance = NSAppearance(named: .darkAqua)
-        let snapshotter = MKMapSnapshotter(options: options)
-        return try await withCheckedThrowingContinuation { continuation in
-            snapshotter.start { snapshot, error in
-                if let snapshot {
-                    continuation.resume(returning: snapshot.image)
-                } else {
-                    continuation.resume(throwing: error ?? URLError(.unknown))
+        let scale = Double(RadarRenderer.size) / (RadarRenderer.crop * pow(2.0, Double(mapZoom - RadarRenderer.zoom)))
+        let (cx, cy) = RadarRenderer.worldPixel(lat: RadarRenderer.centerLat, lon: RadarRenderer.centerLon, zoom: mapZoom)
+        let span = RadarRenderer.crop * pow(2.0, Double(mapZoom - RadarRenderer.zoom))
+        let ox = cx - span / 2, oy = cy - span / 2
+        let minTx = Int(floor(ox / 256)), maxTx = Int(floor((ox + span - 1) / 256))
+        let minTy = Int(floor(oy / 256)), maxTy = Int(floor((oy + span - 1) / 256))
+
+        var tiles: [(x: Int, y: Int, image: NSImage)] = []
+        try await withThrowingTaskGroup(of: (Int, Int, NSImage?).self) { group in
+            for tx in minTx...maxTx {
+                for ty in minTy...maxTy {
+                    let url = URL(string: "https://tile.openstreetmap.org/\(mapZoom)/\(tx)/\(ty).png")!
+                    group.addTask {
+                        var request = URLRequest(url: url)
+                        request.timeoutInterval = 20
+                        request.setValue("BCWC-Menu-Bar/1.0 (macOS; +https://github.com/GeekNerdCarp/bcwc-menu-bar)", forHTTPHeaderField: "User-Agent")
+                        let (data, _) = try await URLSession.shared.data(for: request)
+                        return (tx, ty, NSImage(data: data))
+                    }
                 }
             }
+            for try await (tx, ty, image) in group {
+                if let image { tiles.append((tx, ty, image)) }
+            }
+        }
+
+        let outSize = CGFloat(RadarRenderer.size)
+        return NSImage(size: NSSize(width: outSize, height: outSize), flipped: true) { rect in
+            NSColor(red: 0.02, green: 0.07, blue: 0.12, alpha: 1).setFill()
+            rect.fill()
+            for tile in tiles {
+                let dest = NSRect(
+                    x: (Double(tile.x) * 256 - ox) * scale,
+                    y: (Double(tile.y) * 256 - oy) * scale,
+                    width: 256 * scale, height: 256 * scale)
+                tile.image.draw(in: dest, from: .zero, operation: .sourceOver, fraction: 1)
+            }
+            // Darken the light street map so the radar colours stand out, as on the site.
+            NSColor(red: 0.03, green: 0.05, blue: 0.09, alpha: 0.72).setFill()
+            rect.fill()
+            return true
         }
     }
 }
