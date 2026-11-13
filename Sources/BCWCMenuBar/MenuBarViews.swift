@@ -65,7 +65,7 @@ struct PanelView: View {
             }
             .frame(height: 150)
             .clipped()
-            LinearGradient(colors: [.black.opacity(0.2), .black.opacity(0.78)], startPoint: .top, endPoint: .bottom)
+            LinearGradient(colors: [.black.opacity(0.0), .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
             HStack(alignment: .bottom, spacing: 10) {
                 VStack(alignment: .leading, spacing: 0) {
                     Menu {
